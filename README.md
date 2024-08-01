@@ -16,6 +16,12 @@
 
    3.2 [Set up Kafka on the EC2 instance](#setup_kafka)
 
+   3.3 [Create a custom plugin with MSK Connect in S3](#create_custom_plugin)
+
+   3.4 [Create the connector with MKS Connector ](#create_mks_connector)
+
+   4. [Set up ](#setup_)
+
 ## <a id="description">A DESCRIPTION OF THE PROJECT</a>
 
 It is in progress.....
@@ -157,6 +163,70 @@ The name of the topic MUST be what the task 4 in MILESTONE 3 described, for inst
 
 Otherwise, you can't create any other topic, since the account of this project does not have admin privilegies. I spent sometime
 for figure out that, discussing with one of the tutors engineers (with Blair). Thanks a lot! :)
+
+### <a id="create_custom_plugin">Create a custom plugin with MSK Connect in S3</a>
+
+This can be seen in "MSK Connect" class on "AWS Data Engineering Services" AICore module.
+In order to create a custom plugin, first you have to connect in your EC2 instance.
+
+- After that, use these commands below in ec2 instance.
+
+```
+# assume admin user privileges
+sudo -u ec2-user -i
+# create directory where we will save our connector
+mkdir kafka-connect-s3 && cd kafka-connect-s3
+# download connector from Confluent
+wget https://d2p6pa21dvn84.cloudfront.net/api/plugins/confluentinc/kafka-connect-s3/versions/10.5.13/confluentinc-kafka-connect-s3-10.5.13.zip
+# copy connector to our S3 bucket
+aws s3 cp ./confluentinc-kafka-connect-s3-10.0.3.zip s3://<BUCKET_NAME>/kafka-connect-s3/
+```
+
+The link address on wget could be different that appears here. So check the right link at [confluent.io website](https://www.confluent.io/hub/confluentinc/kafka-connect-s3?session_ref=direct).
+
+- If everything ran successfully, you should be able to see the "kafka-connect-s3/" inside your S3 bucket.
+  Now go to "MSK Connect" section on the left side of the console. Choose "Create customized plugin".
+- On this page, in the field "S3 URI - Custom plugin object", put the url of the bucket that contains the connector whichc you created earlier with .zip file format. In "Custom plugin name", put the name <your_UserId>-plugin.
+- Click on "Create custom plugin".
+
+### <a id="create_mks_connector">Create the connector with MKS Connector</a>
+
+This can be seen in "MSK Connect" class on "AWS Data Engineering Services" AICore module.
+
+- Still in MKS Connect page, choose "Create connector".
+- In the list of plugin, select the plugin you have just created (user-<your_UserId>-bucket), and then click "Next".
+- In the Connector configuration settings copy the following configuration:
+
+```
+connector.class=io.confluent.connect.s3.S3SinkConnector
+# same region as our bucket and cluster
+s3.region=us-east-1
+flush.size=1
+schema.compatibility=NONE
+tasks.max=3
+# include nomeclature of topic name, given here as an example will read all data from topic names starting with msk.topic....
+topics.regex=<YOUR_UUID>.*
+format.class=io.confluent.connect.s3.format.json.JsonFormat
+partitioner.class=io.confluent.connect.storage.partitioner.DefaultPartitioner
+value.converter.schemas.enable=false
+value.converter=org.apache.kafka.connect.json.JsonConverter
+storage.class=io.confluent.connect.s3.storage.S3Storage
+key.converter=org.apache.kafka.connect.storage.StringConverter
+s3.bucket.name=<BUCKET_NAME>
+```
+
+Just replace <YOUR_UUI> and <BUCKET_NAME> by your credentials.
+Leave the rest of the configurations as default, except for:
+
+- Connector type change to Provisioned and make sure both the MCU count per worker and Number of workers are set to 1
+- Worker Configuration, select Use a custom configuration, then pick confluent-worker
+- Access permissions, where you should select the IAM role you have created previously
+
+Skip the next steps and you should have created a new connector.
+
+### <a id=""></a>
+
+### <a id=""></a>
 
 ```
 
