@@ -20,7 +20,9 @@
 
    3.4 [Create the connector with MKS Connector ](#create_mks_connector)
 
-   4. [Set up ](#setup_)
+   3.5 [Create a kafka REST proxy integration for the API ](#create_kafka_rest_api)
+
+   3.6 [Send data to API](#send_data_to_api) 3. [Set up ](#setup_) 4. [Set up ](#setup_) 5. [Set up ](#setup_)
 
 ## <a id="description">A DESCRIPTION OF THE PROJECT</a>
 
@@ -224,7 +226,105 @@ Leave the rest of the configurations as default, except for:
 
 Skip the next steps and you should have created a new connector.
 
+### <a id="create_kafka_rest_api">Create Kafka REST proxy integration for the API</a>
+
+#### Create Resource and Stages
+
+This can be seen in "Integrating API Gateway with Kafka" class on "AWS Data Engineering Services" AICore module.
+First of all, you have to create a "resource" AWS Gateway API feature. In order to do that, follow these steps below:
+
+- Enter in your API Gateway console, on the left side bar, click in "Resources" and click in "Create resouces".
+- The next screen shows two fields: "Resource Path" and "Resource Name". Select the Proxy resource toogle.
+  For Resource Name enter {proxy+}. Finally, select Enable API Gateway CORS and choose Create Resource.
+- After create the resource, click in "Deploy API". You should see a new page with "Stage" dropdown. If you don't have
+  any stage created, choose "New stage" and put a name of this current stage. The name of the stage will be your url path.
+
+Now we have to create a proxy in order to comunicate with the EC2 instance, which contains the Kafka Rest Server (we will build this later).
+
+- On Resource section, click in "ANY" on {proxy+} level in "Resources" side bar.
+- Click on "Integration request" tab and "Edit".
+- For HTTP method select ANY.
+- For the Endpoint URL, you will be your EC2 Instance PublicDNS. You can obtain your EC2 Instance Public DNS by navigating to the EC2 console. The endpoint URL should have the following format: http://KafkaClientEC2InstancePublicDNS:8082/{proxy}. The 8082 port is a default port for Kafka Rest Server.
+- Click in "HTTP proxy integration" slide button if is not turn it on.
+- Click in "Save".
+- Deploy API again.
+
+Make a note of the Invoke URL in Stage section.
+
+#### Create Kafka REST proxy in EC2 client instance
+
+For the API to communicate through the server (EC2 client instance), we need to create a proxy server. To achieve that, it will install the Confluent package for the Kafka REST Proxy.
+
+- Inside of the EC2 client instance, run this commands below:
+
+```
+sudo wget https://packages.confluent.io/archive/7.2/confluent-7.2.0.tar.gz
+tar -xvzf confluent-7.2.0.tar.gz
+```
+
+- To configure the REST proxy to communicate with the desired MSK cluster, and to perform IAM authentication you first need to navigate to confluent-7.2.0/etc/kafka-rest. Inside here run the following command to modify the kafka-rest.properties file:
+
+```
+nano kafka-rest.properties
+```
+
+- Change the bootstrap.servers and the zookeeper.connect variables inside of this file, adding these lines below as well:
+
+```
+client.security.protocol = SASL_SSL
+client.sasl.mechanism = AWS_MSK_IAM
+client.sasl.jaas.config = software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="Your Access Role";
+client.sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClientCallbackHandler
+```
+
+- Deploy the API again on Gateway API.
+- Starting the REST proxy running on confluent-7.2.0/bin folder:
+
+```
+./kafka-rest-start /home/ec2-user/confluent-7.2.0/etc/kafka-rest/kafka-rest.properties
+
+```
+
+If everything went well, you should see: "INFO Server started, listening for requests..." in your EC2 console.
+
+```
+
+```
+
+### <a id="send_data_to_api">Send data to API</a>
+
+We prepared the environment to create data through the API (via Gateway API in AWS), which will use producers in EC2 client instance, using Kafka REST Proxy.
+
+Now that can be used with python script. In the existing user_posting_emulation.py file, I added http(data, method) method to create new data from database of pin, geo and user tables (I will update this function later).
+
+Execute this command below to run the API:
+
+```
+python3 user_posting_emulation.py
+```
+
+If everything is working, the data of pin should appear in your S3 bucket.
+I had some issues regarding the connections between API Gateway and Kafka Rest Proxy. Wayne and Blair helped me out on that. Thanks a lot again. :). The issues was:
+
+- The Invoke url was responding 500 status code, related to SSL certificate. Since it does not have SSL certificate setup on that end point, we simply changed to http instead of https.
+- The format of data that we send to the topics, should be like this:
+
+```
+{"records": {
+    "value": data
+  }
+}
+```
+
+Where "data" is the data that we must to send. This requirement is mandatory by Confluent package (Kafka Rest Proxy).
+
+- One of the engineers had to rebuild the connector (just for safety reasons) and clean the old topics, which I ran it with the producer command in EC2 client instance directly, before of build the kafka rest proxy and gateway api.
+
 ### <a id=""></a>
+
+```
+
+```
 
 ### <a id=""></a>
 
