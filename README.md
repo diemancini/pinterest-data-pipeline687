@@ -22,7 +22,13 @@
 
    3.5 [Create a kafka REST proxy integration for the API ](#create_kafka_rest_api)
 
-   3.6 [Send data to API](#send_data_to_api) 3. [Set up ](#setup_) 4. [Set up ](#setup_) 5. [Set up ](#setup_)
+4. [SEND DATA TO API](#send_data_to_api)
+
+5. [BATCH PROCESSING: DATABRICKS](#bp_databricks)
+
+6. [Set up ](#setup_)
+
+7. [Set up ](#setup_)
 
 ## <a id="description">A DESCRIPTION OF THE PROJECT</a>
 
@@ -287,11 +293,7 @@ client.sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClie
 
 If everything went well, you should see: "INFO Server started, listening for requests..." in your EC2 console.
 
-```
-
-```
-
-### <a id="send_data_to_api">Send data to API</a>
+## <a id="send_data_to_api">SEND DATA TO API</a>
 
 We prepared the environment to create data through the API (via Gateway API in AWS), which will use producers in EC2 client instance, using Kafka REST Proxy.
 
@@ -320,9 +322,71 @@ Where "data" is the data that we must to send. This requirement is mandatory by 
 
 - One of the engineers had to rebuild the connector (just for safety reasons) and clean the old topics, which I ran it with the producer command in EC2 client instance directly, before of build the kafka rest proxy and gateway api.
 
-### <a id=""></a>
+## <a id="bp_databricks">BATCH PROCESSING: DATABRICKS</a>
+
+In order to process the raw data, we have to clean it. Databricks is AWS platform that has several tools to manage the data (store, build scripts to deal with it, etc).
+In this part of the project, we want to retrieve the data from S3 bucket that we built earlier and convert into a Dataframe. To achieve that, Databricks has
+a tool called "Notebook". Notebook supports python scripts, already has several packages pre installed and uses cells (like Notebook in jupiter) to write python scripts.
+We gonna use the Notebook for:
+
+- Retrieve the credentials in order to communitate to S3 bucket
 
 ```
+# pyspark functions
+from pyspark.sql.functions import *
+# URL processing
+import urllib
+
+# Define the path to the Delta table
+delta_table_path = "dbfs:/user/hive/warehouse/authentication_credentials"
+# Read the Delta table to a Spark DataFrame
+aws_keys_df = spark.read.format("delta").load(delta_table_path)
+# Get the AWS access key and secret key from the spark dataframe
+ACCESS_KEY = aws_keys_df.select('Access key ID').collect()[0]['Access key ID']
+SECRET_KEY = aws_keys_df.select('Secret access key').collect()[0]['Secret access key']
+# Encode the secrete key
+ENCODED_SECRET_KEY = urllib.parse.quote(string=SECRET_KEY, safe="")
+```
+
+- Create the drive and retrieve the data from S3 bucket.
+
+```
+# AWS S3 bucket name
+AWS_S3_BUCKET = "user-0affcd87e38f-bucket"
+# Mount name for the bucket
+MOUNT_NAME = "/mnt/s3_0affcd87e38f-bucket"
+# Source url
+SOURCE_URL = "s3n://{0}:{1}@{2}".format(ACCESS_KEY, ENCODED_SECRET_KEY, AWS_S3_BUCKET)
+# Mount the drive
+dbutils.fs.mount(SOURCE_URL, MOUNT_NAME)
+```
+
+- Get data from drive for given topic and convert into a Dataframe.
+
+```
+## Disable format checks during the reading of Delta tables
+spark.sql("SET spark.databricks.delta.formatCheck.enabled=false")
+def get_dataframe_from_drive(topic):
+    # File location and type
+    # Asterisk(*) indicates reading all the content of the specified file that have .json extension
+    file_location = f"/mnt/s3_0affcd87e38f-bucket/topics/{topic}/partition=0/*.json"
+    file_type = "json"
+    # Ask Spark to infer the schema
+    infer_schema = "true"
+    # Read in JSONs from mounted S3 bucket
+    df = spark.read.format(file_type) \
+    .option("inferSchema", infer_schema) \
+    .load(file_location)
+
+    return df
+```
+
+- Use the function for retrieve data for each topic.
+
+```
+df_pin = get_dataframe_from_drive("0affcd87e38f.pin")
+df_geo = get_dataframe_from_drive("0affcd87e38f.geo")
+df_user = get_dataframe_from_drive("0affcd87e38f.user")
 
 ```
 

@@ -1,20 +1,17 @@
-import json
-import logging
-from multiprocessing import Process
+# from multiprocessing import Process
 import random
 from time import sleep
 from typing import Dict
-import requests
 
 from utils import Utils
-import requests
-import boto3
+
+# import requests
+# import boto3
 import sqlalchemy
-from sqlalchemy import text
+from sqlalchemy import text, Engine
 
 random.seed(100)
-logging.basicConfig(encoding="utf-8", level=logging.INFO)
-logger = logging.getLogger()
+logger = Utils().logger
 
 
 class AWSDBConnector(Utils):
@@ -28,7 +25,7 @@ class AWSDBConnector(Utils):
         self.DATABASE = db_creds["DATABASE"]
         self.PORT = 3306
 
-    def create_db_connector(self):
+    def create_db_connector(self) -> Engine:
         engine = sqlalchemy.create_engine(
             f"mysql+pymysql://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.DATABASE}?charset=utf8mb4"
         )
@@ -38,7 +35,7 @@ class AWSDBConnector(Utils):
 new_connector = AWSDBConnector()
 
 
-def run_infinite_post_data_loop():
+def run_infinite_post_data_loop() -> Dict:
 
     # while True:
     sleep(random.randrange(0, 2))
@@ -73,36 +70,8 @@ def run_infinite_post_data_loop():
     return {"pin": pin_result, "geo": geo_result, "user": user_result}
 
 
-def http(data, method="GET"):
-    topic_pin = "0affcd87e38f.pin"  # <your_UserId>.pin for the Pinterest posts data
-    invoke_url = (
-        f"https://74y1om8mn3.execute-api.us-east-1.amazonaws.com/dev/topics/{topic_pin}"
-    )
-
-    payload = {}
-    if data:
-        payload = json.dumps(
-            {
-                "records": [
-                    {
-                        # Data should be send as pairs of column_name:value, with different columns separated by commas
-                        "value": data["pin"]
-                    }
-                ]
-            }
-        )
-
-    print(invoke_url)
-    # print(payload["pin"])
-
-    headers = {"Content-Type": "application/vnd.kafka.json.v2+json"}
-    response = requests.request(method, invoke_url, headers=headers, data=payload)
-    logger.info(response)
-
-
 if __name__ == "__main__":
     dict_result = run_infinite_post_data_loop()
-    logger.info(dict_result)
-    http(dict_result, "POST")
-    # http({})
-    logger.info("Working")
+    new_connector.http(dict_result["pin"], "0affcd87e38f.pin")
+    new_connector.http(dict_result["geo"], "0affcd87e38f.geo")
+    new_connector.http(dict_result["user"], "0affcd87e38f.user")
