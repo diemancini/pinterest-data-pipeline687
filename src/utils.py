@@ -39,10 +39,11 @@ class Utils:
         Parameters:
             - data: Dict
         """
-        keys = list(data.keys())
-        for key in keys:
-            if isinstance(data[key], datetime):
-                data[key] = data[key].strftime("%Y-%m-%d %H:%M:%S")
+        keys = list(data[0].keys())
+        for i in range(len(data)):
+            for key in keys:
+                if isinstance(data[i][key], datetime):
+                    data[i][key] = data[i][key].strftime("%Y-%m-%d %H:%M:%S")
         return data
 
     def http(self, data: Dict, topic: str, method="POST") -> None:
@@ -68,6 +69,7 @@ class Utils:
         data = self.serialize_datetime(data)
 
         payload = json.dumps({"records": [{"value": data}]})
+        #logger.info(payload)
 
         headers = {"Content-Type": "application/vnd.kafka.json.v2+json"}
         response = requests.request(method, invoke_url, headers=headers, data=payload)
