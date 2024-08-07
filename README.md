@@ -28,7 +28,9 @@
 
 6. [BATCH PROCESSING: DATABRICKS AND SPARKS](#bp_databricks_sparks)
 
-7. [Set up ](#setup_)
+7. [BATCH PROCESSING: AWS MWAA](#bp_aws_mwaa)
+
+8. [Set up ](#setup_)
 
 ## <a id="description">A DESCRIPTION OF THE PROJECT</a>
 
@@ -432,15 +434,21 @@ About using the spark in this part of the project, I used these commands:
 
 You can see how I used these functions for this project in [databricks_notebooks](databricks_notebooks) folder.
 
-```
+### <a id="#bp_aws_mwaa">BATCH PROCESSING: AWS MWAA</a>
 
-```
+For running the scheduled tasks in databricks, AWS has a tool called "Amazon Managed Workflows for Apache Airflow" (AKA [MWAA](https://aws.amazon.com/managed-workflows-for-apache-airflow/)).
+There is a tutorial to setup the MWAA environment integraded with S3 storage in AWS on "AWS Data Engineering Services" module AICore website.
+Since this project gave to us the enviroment already setup, I just to had to:
 
-### <a id=""></a>
-
-```
-
-```
+- Create a python file called [0affcd87e38f_dag.py](./dags/0affcd87e38f_dag.py), uploaded in S3 bucket called "mwaa-dags-bucket" of folder dags.
+- This file contains just one task and I setup the fields:
+  - notebook_path
+  - owner
+  - dag_id (first parameter in DAG class)
+  - schedule_interval
+  - start_date
+  - existing_cluster_id
+- Opened the Airflow UI and ran the task manually.
 
 ### <a id=""></a>
 
