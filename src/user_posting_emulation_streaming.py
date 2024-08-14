@@ -13,7 +13,6 @@ new_connector = AWSDBConnector()
 
 def run_infinite_post_data_loop(max_size: int = 1) -> Dict:
 
-    # while True:
     pin_result = []
     geo_result = []
     user_result = []
@@ -25,32 +24,22 @@ def run_infinite_post_data_loop(max_size: int = 1) -> Dict:
         with engine.connect() as connection:
 
             pin_string = text(f"SELECT * FROM pinterest_data LIMIT {random_row}, 1")
-            # pin_string = text(f"SELECT * FROM pinterest_data ORDER BY RAND() LIMIT 1")
             pin_selected_row = connection.execute(pin_string)
 
             for row in pin_selected_row:
-                # pin_result = dict(row._mapping)
                 pin_result.append(dict(row._mapping))
 
             geo_string = text(f"SELECT * FROM geolocation_data LIMIT {random_row}, 1")
-            # geo_string = text(f"SELECT * FROM geolocation_data ORDER BY RAND() LIMIT 1")
             geo_selected_row = connection.execute(geo_string)
 
             for row in geo_selected_row:
-                # geo_result = dict(row._mapping)
                 geo_result.append(dict(row._mapping))
 
             user_string = text(f"SELECT * FROM user_data LIMIT {random_row}, 1")
-            # user_string = text(f"SELECT * FROM user_data ORDER BY RAND() LIMIT 1")
             user_selected_row = connection.execute(user_string)
 
             for row in user_selected_row:
-                # user_result = dict(row._mapping)
                 user_result.append(dict(row._mapping))
-
-            # new_connector.http(pin_result, "0affcd87e38f.pin")
-            # new_connector.http(geo_result, "0affcd87e38f.geo")
-            # new_connector.http(user_result, "0affcd87e38f.user")
 
             logger.info("{} {} {}".format("-" * 40, i + 1, "-" * 40))
             logger.info(f"pin -> {pin_result[i]['index']}")
@@ -61,8 +50,8 @@ def run_infinite_post_data_loop(max_size: int = 1) -> Dict:
 
 
 if __name__ == "__main__":
-    dict_result = run_infinite_post_data_loop(2)
-    # print(dict_result["pin"][0])
+    dict_result = run_infinite_post_data_loop(1)
+
     data_pin = [
         {"data": row, "partition-key": f"partition-{i+1}"}
         for i, row in enumerate(dict_result["pin"])
@@ -75,32 +64,41 @@ if __name__ == "__main__":
         {"data": row, "partition-key": f"partition-{i+1}"}
         for i, row in enumerate(dict_result["user"])
     ]
-    # logger.info(len(data_pin))
-    new_connector.http_stream(
-        data=data_pin,
-        stream_name="streaming-0affcd87e38f-pin",
-        record="records",
-        method="PUT",
-    )
-    new_connector.http_stream(
-        data=data_geo,
-        stream_name="streaming-0affcd87e38f-geo",
-        record="records",
-        method="PUT",
-    )
-    new_connector.http_stream(
-        data=data_user,
-        stream_name="streaming-0affcd87e38f-user",
-        record="records",
-        method="PUT",
-    )
+    """
+    The commented lines below are for sending data by
+    PutRecords (multiples lines of data).
+    """
 
     # new_connector.http_stream(
-    #     dict_result["pin"], "streaming-0affcd87e38f-pin", method="PUT"
+    #     data=data_pin,
+    #     stream_name="streaming-0affcd87e38f-pin",
+    #     record="records",
+    #     method="PUT",
     # )
     # new_connector.http_stream(
-    #     dict_result["geo"], "streaming-0affcd87e38f-geo", method="PUT"
+    #     data=data_geo,
+    #     stream_name="streaming-0affcd87e38f-geo",
+    #     record="records",
+    #     method="PUT",
     # )
     # new_connector.http_stream(
-    #     dict_result["user"], "streaming-0affcd87e38f-user", method="PUT"
+    #     data=data_user,
+    #     stream_name="streaming-0affcd87e38f-user",
+    #     record="records",
+    #     method="PUT",
     # )
+
+    """
+    The commented lines below are for sending data by
+    PutRecord (single line of data).
+    """
+
+    new_connector.http_stream(
+        dict_result["pin"][0], "streaming-0affcd87e38f-pin", method="PUT"
+    )
+    new_connector.http_stream(
+        dict_result["geo"][0], "streaming-0affcd87e38f-geo", method="PUT"
+    )
+    new_connector.http_stream(
+        dict_result["user"][0], "streaming-0affcd87e38f-user", method="PUT"
+    )

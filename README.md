@@ -20,7 +20,7 @@
 
    3.4 [Create the connector with MKS Connector ](#create_mks_connector)
 
-   3.5 [Create a kafka REST proxy integration for the API ](#create_kafka_rest_api)
+   3.5 [Create a Kafka REST Proxy integration for the API ](#create_kafka_rest_api)
 
 4. [SEND DATA TO API](#send_data_to_api)
 
@@ -30,11 +30,19 @@
 
 7. [BATCH PROCESSING: AWS MWAA](#bp_aws_mwaa)
 
-8. [Set up ](#setup_)
+8. [BATCH PROCESSING: AWS KINESIS](#bp_aws_kinesis)
 
 ## <a id="description">A DESCRIPTION OF THE PROJECT</a>
 
-It is in progress.....
+The project consists in learning more about the Data Engineering in real world,
+working with modern tools and integrate each other as a unique system. Mainly we will use AWS features:
+
+- S3: Famous storage that we can save structure and unstructure data (cvs, images, text files, etc...)
+
+- API Gateway: In order to manage the data outside of AWS (as a client) and integrate the all applications in backend side (as a server), this feature
+  can be used for external sources and managed by a project owners. We gonna integrate the database as external source and S3, Databricks and Kinesis in server side.
+
+- Others features as MWAA Airflow (to schedule applications), connectors (MKS) and Kafka Rest Proxy in API Gateway.
 
 ## <a id="install">INSTALLATION INSTRUCTIONS</a>
 
@@ -453,14 +461,47 @@ Since this project gave to us the enviroment already setup, I just to had to:
   - existing_cluster_id
 - Opened the Airflow UI and ran the task manually.
 
-### <a id=""></a>
+### <a id="bp_aws_kinesis">BATCH PROCESSING: AWS KINESIS</a>
+
+On this last task, we will gonna reading and writing data with different approach: using streaming.
+In real world, is hard to process a large amount of data in real time (between request and response any query,
+must last maximun a few seconds) using standards tools (like just SQL databases). In order to process data very
+quickly and with less latency, there are others approaches and tecnologies that we can use now a days.
+[Amazon Kinesis](https://aws.amazon.com/kinesis/) comes to solve that problem, where we can read data from different
+sources and save it, and this data can can be consumed as fast as we can created it.
+
+For this project, I created:
+
+- Rest API for read, create, update Kinesis clusters. Also is possible to read and create data inside of Kinesis Cluster
+  as well.
+- A python script file called [user_posting_emulation_streaming.py](./src/user_posting_emulation_streaming.py), which
+  reads pin, geo and user data from a database, transforms the data into kinesis request format and call the rest api mentioned
+  above.
+- On Databricks, I created two notebooks:
+
+  - read-write-from-databricks-to-kinesis:
+
+    This notebook takes data from data saved in a drive in Databricks to Kinesis cluster for each type of data (pin, geo and user).
+
+  - create-delta-table-from-kinesis:
+
+    After saved the data already cleaned in Kinesis, now it has
+    to comsumed in kinesis and create and saved in delta table
+    inside of Databricks. This is important because the stream data does not have ACID properties, which will be deleted automatically after a period of time (default for kinesis is 24 hours).
+
+I had issues regarding the save the data properly in kinesis using "Put Records"
+(multiples data at once). This method was saving every data as
 
 ```
-
+{key = value}
 ```
 
-### <a id=""></a>
+With equal sign, instead of:
 
 ```
-
+{key : value}
 ```
+
+With colon sign.
+
+For now, I just using the "Put Record" (single data per request).

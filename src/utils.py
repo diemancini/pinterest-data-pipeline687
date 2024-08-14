@@ -33,7 +33,7 @@ class Utils:
         with open(self.DB_CONFIG_FILE, "r") as file:
             config = yaml.safe_load(file)
         return config
-
+    
     def serialize_datetime(self, data: Dict) -> Dict:
         """
         Convert datetime to string in YYYY-mm-DD HH:MM:SS format.
@@ -41,11 +41,29 @@ class Utils:
         Parameters:
             - data: Dict
         """
-        keys = list(data[0].keys())
-        for i in range(len(data)):
-            for key in keys:
-                if isinstance(data[i][key], datetime):
-                    data[i][key] = data[i][key].strftime("%Y-%m-%d %H:%M:%S")
+        keys = list(data.keys())
+        for key in keys:
+            if isinstance(data[key], datetime):
+                data[key] = data[key].strftime("%Y-%m-%d %H:%M:%S")
+        return data
+
+    def serialize_datetime_put_records(self, data: Dict) -> Dict:
+        """
+        Convert datetime to string in YYYY-mm-DD HH:MM:SS format.
+
+        Parameters:
+            - data: Dict
+        """
+        if isinstance(data, list):
+            keys = list(data[0]["data"].keys())
+            logger.info(keys)
+            for i in range(len(data)):
+                for key in keys:
+                    if isinstance(data[i]["data"][key], datetime):
+                        #print(data[i]["data"][key])
+                        data[i]["data"][key] = data[i]["data"][key].strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            data = self.serialize_datetime(data)
         return data
 
     def http_batch(self, data: Dict, topic: str, method="POST") -> None:
@@ -68,7 +86,7 @@ class Utils:
             - method: str
         """
         invoke_url = f"{self.INVOKE_URL}/{topic}"
-        data = self.serialize_datetime(data)
+        data = self.serialize_datetime_put_records(data)
 
         payload = json.dumps({"records": [{"value": data}]})
         #logger.info(payload)
@@ -90,6 +108,7 @@ class Utils:
         """
         payload = {}
         invoke_url = f"{self.INVOKE_URL_STREAM}/streams/{stream_name}"
+        data = self.serialize_datetime_put_records(data)
         if method.upper() == "PUT":
             invoke_url += f"/{record}"
         if method.upper() == "PUT" and record == "records":
@@ -98,7 +117,6 @@ class Utils:
                 "records": data
             })
         elif method.upper() == "PUT" or method.upper() == "POST":
-            data = self.serialize_datetime(data)
             payload = json.dumps({
                 "StreamName": stream_name,
                 "Data": data,
