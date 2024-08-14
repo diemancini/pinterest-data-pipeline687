@@ -4,32 +4,15 @@ from time import sleep
 from typing import Dict
 
 from utils import Utils
+from aws_db_connector import AWSDBConnector
 
 # import requests
 # import boto3
-import sqlalchemy
-from sqlalchemy import text, Engine
+# import sqlalchemy
+from sqlalchemy import text
 
 random.seed(100)
 logger = Utils().logger
-
-
-class AWSDBConnector(Utils):
-
-    def __init__(self):
-
-        db_creds = self.read_aws_credentials()
-        self.HOST = db_creds["HOST"]
-        self.USER = db_creds["USER"]
-        self.PASSWORD = db_creds["PASSWORD"]
-        self.DATABASE = db_creds["DATABASE"]
-        self.PORT = 3306
-
-    def create_db_connector(self) -> Engine:
-        engine = sqlalchemy.create_engine(
-            f"mysql+pymysql://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.DATABASE}?charset=utf8mb4"
-        )
-        return engine
 
 
 new_connector = AWSDBConnector()
@@ -86,6 +69,6 @@ def run_infinite_post_data_loop(max_size: int = 1) -> Dict:
 
 if __name__ == "__main__":
     dict_result = run_infinite_post_data_loop(250)
-    new_connector.http(dict_result["pin"], "0affcd87e38f.pin")
-    new_connector.http(dict_result["geo"], "0affcd87e38f.geo")
-    new_connector.http(dict_result["user"], "0affcd87e38f.user")
+    new_connector.http_batch(dict_result["pin"], "0affcd87e38f.pin")
+    new_connector.http_batch(dict_result["geo"], "0affcd87e38f.geo")
+    new_connector.http_batch(dict_result["user"], "0affcd87e38f.user")

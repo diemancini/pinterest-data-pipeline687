@@ -326,9 +326,10 @@ Where "data" is the data that we must to send. This requirement is mandatory by 
 
 ## <a id="bp_databricks">BATCH PROCESSING: DATABRICKS</a>
 
-In order to process the raw data, we have to clean it. Databricks is AWS platform that has several tools to manage the data (store, build scripts to deal with it, etc).
+In order to process the raw data, we have to clean it. Databricks is AWS platform that has several tools to manage the data (store, build scripts to deal with it, etc).\
 In this part of the project, we want to retrieve the data from S3 bucket that we built earlier and convert into a Dataframe. To achieve that, Databricks has
-a tool called "Notebook". Notebook supports python scripts, already has several packages pre installed and uses cells (like Notebook in jupiter) to write python scripts.
+a tool called "Notebook".\
+ Notebook supports python scripts, already has several packages pre installed and uses cells (like Notebook in jupiter) to write python scripts.
 We gonna use the Notebook for:
 
 - Retrieve the credentials in order to communitate to S3 bucket
@@ -394,49 +395,51 @@ df_user = get_dataframe_from_drive("0affcd87e38f.user")
 
 ### <a id="bp_databricks_sparks">BATCH PROCESSING: DATABRICKS AND SPARKS</a>
 
-On the last section, the data that is stored in S3 bucket was brought into Databricks using Notebook tool and pyspark packages as well.
+On the last section, the data that is stored in S3 bucket was brought into Databricks using Notebook tool and pyspark packages as well.\
 Now is necessary to prepare this data to save them properly in Databricks. To achieve that, we will use again the sparks library, for
-pre processing (clean it accordingly with client requirements). Pyspark library has a powerful features, including load this data as
-Dataframe, which is pretty similar to pandas library. Thought, it is necessary to execute some commands that reminds a little bit a
-sql queries, such as Select, join, etc (Which is awesome). The documentation is [here](https://spark.apache.org/docs/latest/api/python/index.html)
+pre processing (clean it accordingly with client requirements).\
+Pyspark library has a powerful features, including load this data as
+Dataframe, which is pretty similar to pandas library.\
+Thought, it is necessary to execute some commands that reminds a little bit a
+sql queries, such as Select, join, etc (Which is awesome). The documentation is [here](https://spark.apache.org/docs/latest/api/python/index.html).
 
 About using the spark in this part of the project, I used these commands:
 
-- select(<column name 1, column name 2, ...>)
+- select(column name 1, column name 2, ...>)\
   It is similar to SELECT statement of SQL.
 
-- withColumn(<column name>, <value or new value> | <conditionals)>)
+- withColumn(column name, value or new value | conditionals))\
   It is action that what value you want to change in each row for given column name.
   The conditional can be used as well, mostly "when".
 
-- when(<conditional>, <value>)
+- when(conditional, value)\
   It is similar to "Where" clause in SQL. Could be chained with "otherwise" in "value" field.
 
-- otherwise (<conditional>, <value>)
+- otherwise (conditional, value)\
   As the name suggests, it is equivalent to "else" in "if" statement of most popular languages.
   The most conditional used is "when", which reminds the subqueries of SQL.
 
-- groupBy(<column name 1, column name 2, ...>)
+- groupBy(column name 1, column name 2, ...)\
   Group the table by given column(s) name(s)
 
-- agg(<function>)\
+- agg(function)\
   This is aggregate function uses others aggregations functions, like "count()", "sum()", "avg()", etc.
   As in SQL, it must be used after groupBY.
 
 - count()\
-  Function that counts of occurrencies of particular column that it was used in groupBy
+  Function that counts of occurrencies of particular column that it was used in groupBy.
 
-- orderBy(<column name>, <value or new value>)
+- orderBy(column name, value or new value)\
   Order the result query by columns names sequence.
 
-- F
+- F\
   Contains several functions of pyspark library (e.g. mean()).
 
 You can see how I used these functions for this project in [databricks_notebooks](databricks_notebooks) folder.
 
-### <a id="#bp_aws_mwaa">BATCH PROCESSING: AWS MWAA</a>
+### <a id="bp_aws_mwaa">BATCH PROCESSING: AWS MWAA</a>
 
-For running the scheduled tasks in databricks, AWS has a tool called "Amazon Managed Workflows for Apache Airflow" (AKA [MWAA](https://aws.amazon.com/managed-workflows-for-apache-airflow/)).
+For running the scheduled tasks in databricks, AWS has a tool called "Amazon Managed Workflows for Apache Airflow" (AKA [MWAA](https://aws.amazon.com/managed-workflows-for-apache-airflow/)).\
 There is a tutorial to setup the MWAA environment integraded with S3 storage in AWS on "AWS Data Engineering Services" module AICore website.
 Since this project gave to us the enviroment already setup, I just to had to:
 
@@ -449,6 +452,12 @@ Since this project gave to us the enviroment already setup, I just to had to:
   - start_date
   - existing_cluster_id
 - Opened the Airflow UI and ran the task manually.
+
+### <a id=""></a>
+
+```
+
+```
 
 ### <a id=""></a>
 

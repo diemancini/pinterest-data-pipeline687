@@ -19,7 +19,9 @@ class Utils:
 
     CURRENT_PATH = pathlib.Path(__file__).parent.resolve()
     DB_CONFIG_FILE = f"{CURRENT_PATH}/../config/db_creds.yaml"
-    INVOKE_URL = f"https://74y1om8mn3.execute-api.us-east-1.amazonaws.com/dev/topics"
+    INVOKE_URL = "https://74y1om8mn3.execute-api.us-east-1.amazonaws.com/dev/topics"
+    INVOKE_URL_STREAM = "https://74y1om8mn3.execute-api.us-east-1.amazonaws.com/kinesis"
+    #INVOKE_URL_STREAM = "https://74y1om8mn3.execute-api.us-east-1.amazonaws.com/test-stage"
 
     def __init__(self):
         self.logger = logger
@@ -46,7 +48,7 @@ class Utils:
                     data[i][key] = data[i][key].strftime("%Y-%m-%d %H:%M:%S")
         return data
 
-    def http(self, data: Dict, topic: str, method="POST") -> None:
+    def http_batch(self, data: Dict, topic: str, method="POST") -> None:
         """
         Send data to Gateway API AWS. 
         The payload must be in this format:
@@ -74,3 +76,38 @@ class Utils:
         headers = {"Content-Type": "application/vnd.kafka.json.v2+json"}
         response = requests.request(method, invoke_url, headers=headers, data=payload)
         logger.info(response)
+    
+    def http_stream(self, data: Dict={}, stream_name: str="", record: str = "record", method="POST") -> None:
+        """
+        Read/Send data to Kinesis AWS.
+        Where data contains the info that it should sent to the server.
+
+        Parameters:
+            - data: Dict,
+            - stream_name: string -> Name of Kinesis stream.
+            - record: str -> Url path for creating or updating data.
+            - method: str
+        """
+        payload = {}
+        invoke_url = f"{self.INVOKE_URL_STREAM}/streams/{stream_name}"
+        if method.upper() == "PUT":
+            invoke_url += f"/{record}"
+        if method.upper() == "PUT" and record == "records":
+            payload = json.dumps({
+                "StreamName": stream_name,
+                "records": data
+            })
+        elif method.upper() == "PUT" or method.upper() == "POST":
+            data = self.serialize_datetime(data)
+            payload = json.dumps({
+                "StreamName": stream_name,
+                "Data": data,
+                "PartitionKey": "partition-1"
+            })
+        logger.info(payload)
+
+        headers =  {'Content-Type': 'application/json'}
+        response = requests.request(method, invoke_url, headers=headers, data=payload)
+        logger.info(invoke_url)
+        logger.info(response)
+        logger.info(response.content)
